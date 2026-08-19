@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=77.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "emcad"
+version = "0.1.0"
+description = "A pure-Python 2D polygon/CAD geometry kernel and a from-scratch ODB++ PCB format parser, accelerated with Numba."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [
+    { name = "Robert Fennis" },
+]
+keywords = ["odb++", "pcb", "eda", "geometry", "polygon", "cad", "numba"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Manufacturing",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "loguru>=0.7.0",
+    "matplotlib>=3.8.0",
+    "msgpack>=1.0.0",
+    "numpy>=2.2, <2.5",
+    "numba>=0.60.0",
+]
+
+[project.urls]
+Repository = "https://github.com/FennisRobert/emcad"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

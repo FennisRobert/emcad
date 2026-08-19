@@ -1,0 +1,40 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Editors / IDEs
+.vscode/
+
+# emcad.odbpp.cache snapshots -- regenerate from source, don't commit
+*.pcbcache
+
+# ODB++ board data used for local testing/development -- may contain
+# proprietary designs; never published to the public repo or PyPI.
+example_files/
+
+# Stale pre-rewrite backup copies of kernel modules, kept locally only.
+backup/
+
+# emerge simulation output (requires the separate, non-PyPI `emerge`
+# package -- see README's "Optional: emerge bridge" section).
+*.EMResults/
+
+# Personal scratch/manual-test scripts -- not part of the installable
+# package, several depend on `emerge` and/or hardcode local paths. See
+# CLAUDE.md if you're picking these back up for local development.
+/main.py
+/mathexp.py
+/odb_parse.py
+/odb_parse_post.py
+/odb_parse_test.py
+/odb_view.py
+"/odb_parse copy.py"
+
+dev/

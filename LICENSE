@@ -1,0 +1,35 @@
+MIT License
+
+Copyright (c) 2026 Robert Fennis
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+Note on AI-generated content
+-----------------------------
+The vast majority of this codebase was written by Claude Code, an AI coding
+assistant, under human direction and review. Authorship law around
+AI-generated work is unsettled and varies by jurisdiction; in any
+jurisdiction where such content is not recognized as eligible for copyright
+protection in the first place (e.g. output with no sufficient human
+authorship), no exclusive right is asserted over it there, and it may be
+treated as public domain. Where copyright does subsist, it is licensed under
+the MIT terms above -- which already permit unrestricted use, modification,
+and redistribution, commercial or otherwise.
