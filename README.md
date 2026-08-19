@@ -30,14 +30,6 @@ accelerated with [Numba](https://numba.pydata.org/).
 Both subsystems are pure Python + NumPy + Numba -- no compiled extensions to
 build, no external geometry library dependency (no Shapely/CGAL/etc).
 
-An optional third piece, `emcad.emerge_interface`, bridges the two into 3D
-CAD geometry for the sibling [`emerge`](https://github.com/emerge-fem)
-FEM electromagnetics simulator. **`emerge` is not a dependency of this
-package** -- it's a separate, proprietary product you install yourself if you
-want it; `import emcad` never touches it, and nothing else in `emcad`
-requires it. See [Optional: the `emerge` bridge](#optional-the-emerge-bridge)
-below.
-
 ## Installation
 
 ```bash
@@ -126,43 +118,6 @@ pcb_fast = load_pcb_cache("board.pcbcache")   # no re-parsing, no re-resolving
 `load_pcb_cache` returns a drop-in stand-in for `PCBView` -- same public
 methods, so existing code doesn't need to change.
 
-## Optional: the `emerge` bridge
-
-If you have the separate [`emerge`](https://github.com/emerge-fem) FEM
-simulator installed, `emcad.emerge_interface.ODBImport` turns a parsed board
-straight into `emerge` CAD geometry:
-
-```python
-import emerge as em
-from emcad.emerge_interface import ODBImport
-
-material = em.Material(er=3.74, tand=0.0037, name="RO4350B")
-um = 1e-6
-
-odbfile = ODBImport(
-    "/path/to/MyBoard.odb",
-    material,
-    stack_thickness=[35 * um, 508 * um, 35 * um],
-    reverse_stack=True,
-)
-
-dielectric = odbfile.generate_dielectric()
-traces = odbfile.generate_traces()
-vias = odbfile.generate_vias(autojoin_limit=0.001)
-```
-
-Every tolerance/resolution knob this uses (curve tessellation, RDP
-simplification, dezigzag sensitivity, tiered via circle resolution, boolean
-merge tolerance) is centralized in `ODBImportConfig` -- construct one, tweak
-what you need, pass it to `ODBImport(..., config=...)`. See that class's own
-docstrings for the full list.
-
-This module is the *only* file in `emcad` that imports `emerge`, and it's
-never imported by `emcad`'s own `__init__.py` -- `import emcad` and
-`import emcad.odbpp` work with zero knowledge of whether `emerge` is
-installed. `emerge_interface` is slated to eventually move into `emerge`
-itself, so `emcad` has no dependency on it at all, even an optional one.
-
 ## Architecture
 
 See [`CLAUDE.md`](./CLAUDE.md) for a detailed map of both subsystems --
@@ -181,7 +136,7 @@ pytest
 The suite is almost entirely regression coverage for the boolean kernel
 (basic ops, touching polygons, holes, islands nested in holes, bounding-box
 clustering, de-zigzag, ring self-intersection safety) plus a round-trip test
-for the ODB++ geometry cache. It doesn't depend on `emerge` or any ODB++
+for the ODB++ geometry cache. It doesn't depend on any ODB++
 board files being present.
 
 ## License
