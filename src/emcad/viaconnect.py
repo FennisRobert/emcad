@@ -10,8 +10,8 @@ via-fence around a trace.
 Pipeline
 --------
 1. Connect every pair of vias within `max_dist` of each other. The
-   O(n^2) proximity check is numba-jitted -- this is the part that
-   actually matters once you're north of ~1000 vias.
+   proximity check runs in Rust, grid-bucketed -- this is the part
+   that actually matters once you're north of ~1000 vias.
 2. Contract the resulting graph: any vertex of degree 2 whose two
    incident edges are collinear gets dissolved, merging its two edges
    into one longer straight edge. Iterated until stable, so a long
@@ -51,61 +51,25 @@ import math
 import time
 
 import numpy as np
-from numba import njit
 from loguru import logger
 
 from emcad.poly import Polygon
 from emcad.kernel.api import add_polygons
 from emcad.plot import GeometryPlotter
-from emcad.kernel import fragment_kernels as fkernels
-from emcad.kernel.fragment_tools import build_rotation_system
-from emcad.kernel._arrangement_kernels import face_id_per_halfedge, face_vertex_loops
+from emcad import _rs
 from emcad.kernel._profiling import format_runtime
 
 
 # --------------------------------------------------------------------------
-# Step 1: proximity graph -- the one genuinely O(n^2) part, numba-jitted.
-# Two passes (count, then fill) so we allocate the output array exactly
-# once rather than growing a list inside the jitted loop.
+# Step 1: proximity graph (Rust, grid-bucketed).
 # --------------------------------------------------------------------------
 
-@njit(cache=True)
 def _proximity_edges(xs: np.ndarray, ys: np.ndarray, max_dist: float) -> np.ndarray:
-    """Every pair (i, j), i < j, with distance <= max_dist. Returns a
-    (2, K) int64 array of vertex-index pairs.
-
-    O(n^2), same "TODO: spatial index for very large N" caveat as the
-    rest of this package's intersection kernels -- fine up to several
-    thousand vias, since it's a tight, compiled loop; would want
-    bucketing for tens of thousands.
+    """Every pair (i, j), i < j, with distance <= max_dist, as a (2, K)
+    int64 array sorted by (i, j) -- grid-bucketed in Rust
+    (`rust/src/via.rs`), so ~O(n) for realistic via densities.
     """
-    n = xs.shape[0]
-    max_d2 = max_dist * max_dist
-
-    count = 0
-    for i in range(n):
-        xi = xs[i]
-        yi = ys[i]
-        for j in range(i + 1, n):
-            dx = xs[j] - xi
-            dy = ys[j] - yi
-            if dx * dx + dy * dy <= max_d2:
-                count += 1
-
-    out = np.empty((2, count), dtype=np.int64)
-    ctr = 0
-    for i in range(n):
-        xi = xs[i]
-        yi = ys[i]
-        for j in range(i + 1, n):
-            dx = xs[j] - xi
-            dy = ys[j] - yi
-            if dx * dx + dy * dy <= max_d2:
-                out[0, ctr] = i
-                out[1, ctr] = j
-                ctr += 1
-
-    return out
+    return _rs.proximity_edges(xs, ys, max_dist)
 
 
 def build_proximity_graph(via_xy: np.ndarray, max_dist: float) -> list[tuple[int, int]]:
@@ -119,54 +83,28 @@ def build_proximity_graph(via_xy: np.ndarray, max_dist: float) -> list[tuple[int
     return [(int(edges[0, k]), int(edges[1, k])) for k in range(edges.shape[1]) if keep[k]]
 
 
-@njit(cache=True)
 def _prune_redundant_edges(
     xs: np.ndarray, ys: np.ndarray, edges_i: np.ndarray, edges_j: np.ndarray, max_dist: float
 ) -> np.ndarray:
     """Relative-Neighborhood-Graph-style pruning: drop edge (i, j) if
     some other via k is within max_dist of both endpoints and strictly
-    closer to each of them than i and j are to each other.
+    closer to each of them than i and j are to each other. Returns a
+    keep-mask over the edges.
 
     Without this, connecting "every pair within max_dist" naively
-    creates redundant edges parallel to (or nearly along) a more
-    direct chain whenever via spacing is smaller than max_dist -- e.g.
-    a regularly-spaced straight run of vias would otherwise also get
-    "skip" edges to next-nearest and next-next-nearest neighbors. That
-    breaks the collinear-merge step (those vertices end up degree
-    4-6, not 2) and produces redundant overlapping primitives.
+    creates redundant edges parallel to (or nearly along) a more direct
+    chain whenever via spacing is smaller than max_dist -- e.g. a
+    regularly-spaced straight run of vias would otherwise also get
+    "skip" edges to next-nearest neighbors. That breaks the collinear-
+    merge step (those vertices end up degree 4-6, not 2) and produces
+    redundant overlapping primitives.
     """
-    n_edges = edges_i.shape[0]
-    n = xs.shape[0]
-    keep = np.ones(n_edges, dtype=np.bool_)
-    max_d2 = max_dist * max_dist
-
-    for e in range(n_edges):
-        i = edges_i[e]
-        j = edges_j[e]
-        xi, yi = xs[i], ys[i]
-        xj, yj = xs[j], ys[j]
-        dij2 = (xj - xi) ** 2 + (yj - yi) ** 2
-
-        for k in range(n):
-            if k == i or k == j:
-                continue
-            xk, yk = xs[k], ys[k]
-            dik2 = (xk - xi) ** 2 + (yk - yi) ** 2
-            if dik2 > max_d2 or dik2 >= dij2:
-                continue
-            djk2 = (xk - xj) ** 2 + (yk - yj) ** 2
-            if djk2 > max_d2 or djk2 >= dij2:
-                continue
-            keep[e] = False
-            break
-
-    return keep
+    return _rs.prune_redundant_edges(xs, ys, edges_i, edges_j, max_dist)
 
 
 # --------------------------------------------------------------------------
 # Step 2: the merger routine -- dissolve collinear degree-2 vertices.
-# Graph-shaped (dicts of sets), so this stays plain Python rather than
-# numba; edge counts here are O(n), not O(n^2), so it's not the
+# Graph-shaped (dicts of sets), so this stays plain Python; edge counts here are O(n), not O(n^2), so it's not the
 # bottleneck at any via count this script is meant for.
 # --------------------------------------------------------------------------
 
@@ -434,26 +372,19 @@ def _via_graph_faces(via_xy: np.ndarray, merged_edges: list[tuple[int, int]]):
     edge_u = np.asarray([a for a, b in merged_edges], dtype=np.int64)
     edge_v = np.asarray([b for a, b in merged_edges], dtype=np.int64)
 
+    # half-edges 2m / 2m+1 are edge m forward / backward -- the same
+    # convention `_rs.trace_graph_faces` uses internally
     he_start = np.empty(2 * M, dtype=np.int64)
-    he_end = np.empty(2 * M, dtype=np.int64)
-    he_twin = np.empty(2 * M, dtype=np.int64)
     he_edge_idx = np.empty(2 * M, dtype=np.int64)
     he_start[0::2] = edge_u
-    he_end[0::2] = edge_v
     he_start[1::2] = edge_v
-    he_end[1::2] = edge_u
-    he_twin[0::2] = np.arange(1, 2 * M, 2, dtype=np.int64)
-    he_twin[1::2] = np.arange(0, 2 * M, 2, dtype=np.int64)
     he_edge_idx[0::2] = np.arange(M, dtype=np.int64)
     he_edge_idx[1::2] = np.arange(M, dtype=np.int64)
 
     xy_float = np.vstack([via_xy[:, 0], via_xy[:, 1]]).astype(np.float64)
-    sorted_he, v_offset, pos_in_block = build_rotation_system(he_start, he_end, xy_float, n)
-
-    face_starts = fkernels.trace_faces(he_start, he_end, he_twin, sorted_he, v_offset, pos_in_block)
-    areas = fkernels.face_areas(face_starts, he_start, he_end, he_twin, sorted_he, v_offset, pos_in_block, xy_float)
-    he_face_id = face_id_per_halfedge(face_starts, he_start, he_end, he_twin, sorted_he, v_offset, pos_in_block)
-    verts, offsets = face_vertex_loops(face_starts, he_start, he_end, he_twin, sorted_he, v_offset, pos_in_block)
+    face_starts, areas, he_face_id, verts, offsets = _rs.trace_graph_faces(
+        edge_u, edge_v, np.ascontiguousarray(xy_float[0]), np.ascontiguousarray(xy_float[1])
+    )
 
     find, union = _union_find_simple(n)
     for a, b in merged_edges:

@@ -246,11 +246,15 @@ class CachedPCBView:
         post_simplify: bool = True,
         post_simplify_delta: Optional[float] = None,
         merge_tol: Optional[float] = None,
+        regularize: bool = False,
+        regularize_tol: Optional[float] = None,
+        regularize_dangle_deg: float = 5.0,
     ) -> list:
         return _resolve_layer_polygons(
             layer, simplify_delta, dezigzag, dezigzag_max_kink_length,
             dezigzag_max_angle_deg, dezigzag_min_neighbor_factor,
             post_simplify, post_simplify_delta, merge_tol,
+            regularize, regularize_tol, regularize_dangle_deg,
         )
 
     # ---- drill holes ---------------------------------------------------------

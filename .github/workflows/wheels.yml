@@ -1,0 +1,175 @@
+# Build + test emcad wheels (abi3: one wheel per platform covers every
+# CPython >= 3.10) and the sdist on every push / PR.
+#
+# Publishing NEVER happens automatically on push. It only runs when:
+#   - you start this workflow by hand (Actions -> "wheels" -> Run workflow)
+#     and pick publish target "testpypi" or "pypi", or
+#   - you publish a GitHub release (-> PyPI).
+# Uploads use PyPI Trusted Publishing (OIDC, no API token) and are gated by
+# the `pypi` / `testpypi` GitHub environments, so you can additionally
+# require a manual approval there. One-time setup: see the notes at the
+# bottom of this file.
+
+name: wheels
+
+on:
+  push:
+    branches: [main, master, rust-kernel]
+    tags: ["v*"]
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Upload the built distributions to"
+        type: choice
+        options: [none, testpypi, pypi]
+        default: none
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ------------------------------------------------------------------------
+  # wheels (built and tested on native runners)
+  # ------------------------------------------------------------------------
+  wheels:
+    name: wheel ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x86_64, runner: ubuntu-latest, target: x86_64, manylinux: auto, test: true }
+          - { name: linux-aarch64, runner: ubuntu-24.04-arm, target: aarch64, manylinux: auto, test: true }
+          - { name: musllinux-x86_64, runner: ubuntu-latest, target: x86_64, manylinux: musllinux_1_2, test: false }
+          - { name: macos-x86_64, runner: macos-15-intel, target: x86_64, test: true }
+          - { name: macos-arm64, runner: macos-14, target: aarch64, test: true }
+          - { name: windows-x64, runner: windows-latest, target: x64, test: true }
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+
+      - name: Build wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux }}
+          args: --release --out dist
+          sccache: "true"
+
+      # Test the built wheel on the oldest and a recent CPython (abi3 means
+      # the same file serves both). Runs from the repo root so `tests/` is
+      # available, but imports the INSTALLED wheel (src/ isn't on sys.path).
+      - name: Test wheel (Python 3.10)
+        if: matrix.test
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest dist/*.whl
+          python -m pytest -q tests
+
+      - uses: actions/setup-python@v6
+        if: matrix.test
+        with:
+          python-version: "3.13"
+
+      - name: Test wheel (Python 3.13)
+        if: matrix.test
+        shell: bash
+        run: |
+          python -m pip install pytest dist/*.whl
+          python -m pytest -q tests
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.name }}
+          path: dist/*.whl
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------------
+  # sdist (and prove it builds from source + passes the tests)
+  # ------------------------------------------------------------------------
+  sdist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+
+      - name: Build from sdist and test
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest dist/*.tar.gz
+          python -m pytest -q tests
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------------
+  # publish -- manual / release only
+  # ------------------------------------------------------------------------
+  publish:
+    name: publish to ${{ github.event_name == 'release' && 'pypi' || inputs.publish }}
+    needs: [wheels, sdist]
+    if: >-
+      (github.event_name == 'release') ||
+      (github.event_name == 'workflow_dispatch' && inputs.publish != 'none')
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event_name == 'release' && 'pypi' || inputs.publish }}
+      url: ${{ (github.event_name == 'release' || inputs.publish == 'pypi') && 'https://pypi.org/p/emcad' || 'https://test.pypi.org/p/emcad' }}
+    permissions:
+      id-token: write  # PyPI Trusted Publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List distributions
+        run: ls -l dist
+
+      - name: Publish to TestPyPI
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == 'testpypi'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+      - name: Publish to PyPI
+        if: github.event_name == 'release' || inputs.publish == 'pypi'
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+# --------------------------------------------------------------------------
+# One-time setup for publishing
+# --------------------------------------------------------------------------
+# 1. PyPI -> your project "emcad" -> Settings -> Publishing -> add a
+#    "GitHub Actions" trusted publisher:
+#      owner: FennisRobert   repository: emcad
+#      workflow: wheels.yml  environment: pypi
+#    (same on test.pypi.org with environment: testpypi, if you want to
+#    rehearse there first -- TestPyPI is a separate account/project).
+# 2. GitHub repo -> Settings -> Environments -> create `pypi` (and
+#    `testpypi`). Optionally add yourself as a required reviewer so every
+#    upload waits for your approval.
+# 3. Bump `version` in pyproject.toml (+ rust/Cargo.toml) -- PyPI rejects
+#    re-uploads of an existing version (0.1.0 is already taken).

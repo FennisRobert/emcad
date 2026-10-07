@@ -1,8 +1,7 @@
 # emcad
 
-A pure-Python 2D polygon/CAD geometry kernel, plus a from-scratch
-[ODB++](https://en.wikipedia.org/wiki/ODB%2B%2B) PCB design-format parser,
-accelerated with [Numba](https://numba.pydata.org/).
+A 2D polygon/CAD geometry kernel with a Rust core, plus a from-scratch
+[ODB++](https://en.wikipedia.org/wiki/ODB%2B%2B) PCB design-format parser.
 
 > **Written with AI assistance.** The vast majority of this codebase was
 > written by [Claude Code](https://claude.com/claude-code), under human
@@ -27,8 +26,11 @@ accelerated with [Numba](https://numba.pydata.org/).
    typed object graph, then resolves it into per-layer, boolean-unified 2D
    polygons and a Z-stack, ready to hand to a mesher or FEM tool.
 
-Both subsystems are pure Python + NumPy + Numba -- no compiled extensions to
-build, no external geometry library dependency (no Shapely/CGAL/etc).
+The kernel is a compiled Rust extension (`emcad._rs`, built from `rust/` with
+PyO3). It's a port of the original Numba/Python implementation (emcad 0.1)
+that reproduced its results bit-for-bit while running typically 20-100x
+faster; see [`benchmarks/RESULTS.md`](./benchmarks/RESULTS.md). There's no
+external geometry library dependency (no Shapely/CGAL/etc).
 
 ## Installation
 
@@ -36,7 +38,10 @@ build, no external geometry library dependency (no Shapely/CGAL/etc).
 pip install emcad
 ```
 
-Requires Python >= 3.10. Core dependencies: `numpy`, `numba`, `loguru`,
+Prebuilt wheels cover Linux (x86_64, aarch64), macOS (Intel, Apple
+Silicon) and Windows (x64) for every CPython >= 3.10. Building from source
+needs a Rust toolchain (`rustup`), since the package is built with
+[maturin](https://www.maturin.rs/). Core dependencies: `numpy`, `loguru`,
 `matplotlib` (used by the debug plotting helpers), `msgpack` (used by the
 optional parsed-geometry cache).
 
@@ -60,7 +65,17 @@ difference = cad.subtract_polygons((a,), (b,))   # a minus b
 # see Polygon.simplify()/.dezigzag()'s own docstrings for why):
 union[0].simplify(1e-6)     # Ramer-Douglas-Peucker point reduction
 union[0].dezigzag(1e-5)     # collapse tessellated-circle "step" artifacts
+union[0].regularize(0.25e-3)  # snap edges back onto straight lines, drop small bumps
 ```
+
+`regularize(tol, dangle_deg=5.0)` is map-making style outline regularization,
+meant for copper outlines whose straight edges are littered with via pads
+poking out after a union. RDP can only remove those bumps by keeping their
+tips, which tilts the long edges; `regularize` instead anchors on edges lying
+on a `dangle_deg` direction grid, flattens protrusions smaller than `tol`,
+and rebuilds corners hidden under pads, keeping real arcs. In the ODB++
+pipeline it's the `regularize=True` option of `resolve_layer_polygons` /
+`generate_traces` (`ODBImportConfig.trace_regularize`).
 
 `Polygon.holes` nests arbitrarily deep (a hole can carry its own holes, i.e.
 islands, to any depth), and every boolean op / cleanup pass handles that
@@ -129,9 +144,14 @@ reference for a human reader too.
 ## Testing
 
 ```bash
-uv sync
-pytest
+uv sync --group dev                 # builds the Rust extension
+uv run pytest
+uv run python benchmarks/bench.py   # kernel benchmark
 ```
+
+`uv sync`/`uv run` rebuild the extension automatically when anything under
+`rust/` changes. `tests/test_09_golden.py` pins every kernel operation to
+golden results recorded from the original implementation.
 
 The suite is almost entirely regression coverage for the boolean kernel
 (basic ops, touching polygons, holes, islands nested in holes, bounding-box

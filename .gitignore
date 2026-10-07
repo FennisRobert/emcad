@@ -38,3 +38,10 @@ backup/
 "/odb_parse copy.py"
 
 dev/
+rust/target/
+src/emcad/*.so
+src/emcad/*.pyd
+
+# local board files (not distributable)
+testmodels/
+benchmarks/results.json

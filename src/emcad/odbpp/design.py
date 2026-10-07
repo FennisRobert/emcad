@@ -784,6 +784,9 @@ class PCBView:
         post_simplify: bool = True,
         post_simplify_delta: Optional[float] = None,
         merge_tol: Optional[float] = None,
+        regularize: bool = False,
+        regularize_tol: Optional[float] = None,
+        regularize_dangle_deg: float = 5.0,
     ) -> List["cad.Polygon"]:
         """See the module-level `resolve_layer_polygons` function --
         this is a thin method wrapper so existing call sites keep
@@ -796,6 +799,7 @@ class PCBView:
             layer, simplify_delta, dezigzag, dezigzag_max_kink_length,
             dezigzag_max_angle_deg, dezigzag_min_neighbor_factor,
             post_simplify, post_simplify_delta, merge_tol,
+            regularize, regularize_tol, regularize_dangle_deg,
         )
 
     # ---- plotting (bonus: a quick visual sanity check) ---------------------
@@ -831,6 +835,12 @@ class PCBView:
 #: stay independent).
 _DEFAULT_POST_UNION_TOLERANCE = 10e-6
 
+#: Default `regularize_tol` (meters): the largest protrusion
+#: `Polygon.regularize` flattens back onto a straight edge -- sized for
+#: via pads poking ~0.1-0.2 mm out of a copper edge. Must stay below the
+#: board's smallest real feature (slot/gap width) you want to keep.
+_DEFAULT_REGULARIZE_TOL = 0.25e-3
+
 
 def resolve_layer_polygons(
     layer: "GeoLayer",
@@ -842,6 +852,9 @@ def resolve_layer_polygons(
     post_simplify: bool = True,
     post_simplify_delta: Optional[float] = None,
     merge_tol: Optional[float] = None,
+    regularize: bool = False,
+    regularize_tol: Optional[float] = None,
+    regularize_dangle_deg: float = 5.0,
 ) -> List["cad.Polygon"]:
     """Resolve one geometry layer's raw features into the SAME
     boolean-unified polygons `emerge_interface.ODBImport.
@@ -925,6 +938,17 @@ def resolve_layer_polygons(
             note above, this is a blunter, less reliable knob than
             keeping `simplify_delta` small in the first place.
 
+        regularize: if True, run `Polygon.regularize()` on every
+            output polygon (recursing into holes) after dezigzag and
+            before `post_simplify` -- map-making style outline
+            regularization that snaps edges back onto their dominant
+            straight lines and drops small protrusions such as via pads
+            sticking out of a copper edge, without the edge skew a large
+            `post_simplify_delta` causes. Off by default.
+        regularize_tol: largest protrusion (meters) flattened; `None`
+            uses `_DEFAULT_REGULARIZE_TOL` (0.25 mm).
+        regularize_dangle_deg: snap-angle step for straight edges.
+
     Returns:
         List of `emcad.Polygon` -- the final, fully-resolved shapes
         for this layer, each possibly carrying `.holes` (at any
@@ -959,6 +983,11 @@ def resolve_layer_polygons(
         )
         for poly in result:
             poly.dezigzag(kink_length, dezigzag_max_angle_deg, dezigzag_min_neighbor_factor)
+
+    if regularize:
+        tol = regularize_tol if regularize_tol is not None else _DEFAULT_REGULARIZE_TOL
+        for poly in result:
+            poly.regularize(tol, regularize_dangle_deg)
 
     if post_simplify:
         delta = post_simplify_delta if post_simplify_delta is not None else _DEFAULT_POST_UNION_TOLERANCE
