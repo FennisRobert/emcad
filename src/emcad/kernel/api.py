@@ -1,36 +1,25 @@
 """
-Public kernel API -- thin, fully-typed wrappers only.
+Public kernel API -- thin, fully-typed wrappers over the compiled Rust
+kernel (`emcad._rs`, built from `rust/`).
 
 No implementation logic lives in this file on purpose: it's the
-interface boundary the rest of the package and outside callers use.
-Every actual implementation lives in an underscore-prefixed module:
+interface boundary the rest of the package and outside callers use, and
+the place each operation's contract is documented. Rust source map:
 
-    _ch.py               convex_hull
-    _primitives.py        edge_self_intersections / edge_cross_intersections / is_inside
-    _simplify.py          sanitize_polygon / simplify_polyline / dezigzag_polyline
-    _fragment.py           poly_fragment
-    _boolean_ops.py        add_polygons / intersect_polygons / subtract_polygons
-    _arrangement.py         is_simple_ring (plus the underlying engine build_arrangement/label_and_assemble use)
-    _join.py                join_polygons
-    _keyhole.py             dekeyhole_polygon / dekeyhole_polygons
+    rust/src/primitives.rs   convex_hull, edge_*_intersections, sanitize/simplify/dezigzag
+    rust/src/geom.rs         is_inside, Polygon.point_inside / is_inside
+    rust/src/exact.rs        exact grid-integer predicates + split finder
+    rust/src/arrangement.rs  arrangement engine, is_simple_ring
+    rust/src/boolean.rs      add / intersect / subtract / join (+ bbox clustering)
+    rust/src/fragment.rs     poly_fragment
+    rust/src/keyhole.rs      dekeyhole_polygon(s)
+    rust/src/regularize.rs   regularize_polyline
+    rust/src/via.rs          via proximity graph kernels (used by viaconnect.py)
 
-Import structure, and why: `_fragment.py`, `_boolean_ops.py`, and
-`_primitives.py`/`_ch.py`/`_simplify.py` don't need `Polygon` at
-module-load time (any type hints resolve lazily thanks to
-`from __future__ import annotations`, and their one genuine runtime
-use of `Polygon` -- reconstructing a result -- is deferred inside the
-function body that needs it), so they're all safe to import normally,
-right here at the top.
-
-`_join.py` is the one exception: it constructs `Polygon` and raises
-`GeometryException` throughout its logic, so it needs `Polygon`
-imported at ITS OWN module top level. `poly.py` imports the primitives
-above from THIS module, so if this module imported `_join` at its own
-top level too, loading `poly.py` would transitively try to load
-`_join.py` -- which would try to import from `poly.py` -- while
-`poly.py` is still mid-load. That's a circular import. `_boolean_ops.py`
-already defers its own `_join` import for the same reason; `join_polygons`
-below does the same.
+Every polygon-level operation is ONE call into Rust over the whole
+input: Rust reads `Polygon.xs`/`.ys`/`.holes` directly and builds the
+result `Polygon` objects itself (see `benchmarks/RESULTS.md` for why
+that boundary was drawn there).
 """
 
 from __future__ import annotations
@@ -39,89 +28,164 @@ from typing import Iterable, TYPE_CHECKING
 
 import numpy as np
 
-from ._ch import convex_hull as _convex_hull_impl
-from ._primitives import (
-    edge_self_intersections as _edge_self_intersections_impl,
-    edge_cross_intersections as _edge_cross_intersections_impl,
-    is_inside as _is_inside_impl,
-)
-from ._simplify import (
-    sanitize_polygon as _sanitize_polygon_impl,
-    simplify_polyline as _simplify_polyline_impl,
-    dezigzag_polyline as _dezigzag_polyline_impl,
-)
-from ._fragment import poly_fragment as _poly_fragment_impl
-from ._boolean_ops import (
-    add_polygons as _add_polygons_impl,
-    intersect_polygons as _intersect_polygons_impl,
-    subtract_polygons as _subtract_polygons_impl,
-)
-from ._arrangement import is_simple_ring as _is_simple_ring_impl
-from ._keyhole import (
-    dekeyhole_polygon as _dekeyhole_polygon_impl,
-    dekeyhole_polygons as _dekeyhole_polygons_impl,
-)
+from .. import _rs
 from ._constants import DEFAULT_MERGE_TOL, DEFAULT_T_TOL, DEFAULT_AREA_TOL
 
 if TYPE_CHECKING:
     from ..poly import Polygon
 
 
+def _f64(a) -> np.ndarray:
+    return np.ascontiguousarray(a, dtype=np.float64)
+
+
+# --------------------------------------------------------------------------
+# primitives
+# --------------------------------------------------------------------------
+
 def convex_hull(xs: Iterable[float], ys: Iterable[float]) -> np.ndarray:
-    """Compute the convex hull for a set of points. See `_ch.convex_hull`."""
-    return _convex_hull_impl(xs, ys)
+    """Convex hull of a point set (monotone chain).
+
+    Returns:
+        int64 array of indices into xs/ys forming the hull, in order,
+        without a repeated closing index.
+    """
+    return _rs.convex_hull(_f64(xs), _f64(ys))
 
 
 def edge_self_intersections(pts_start: np.ndarray, pts_end: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Compute the self intersection points of a set of edges. See
-    `_primitives.edge_self_intersections`.
+    """All crossings among one set of edges (every ordered pair (i, j)
+    whose closed segments intersect; parallel pairs are skipped).
+
+    Args:
+        pts_start, pts_end: (2, N) edge start / end coordinates.
+
+    Returns:
+        (ids, coords): (2, K) int64 edge-index pairs and (2, K) float64
+        crossing coordinates.
     """
-    return _edge_self_intersections_impl(pts_start, pts_end)
+    s, e = _f64(pts_start), _f64(pts_end)
+    return _rs.edge_intersections(s, e, s, e)
 
 
 def edge_cross_intersections(
     pts1_start: np.ndarray, pts1_end: np.ndarray, pts2_start: np.ndarray, pts2_end: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Compute all edge intersections between two distinct edge sets. See
-    `_primitives.edge_cross_intersections`.
+    """All crossings between two distinct edge sets ((2, N) and (2, M)
+    start/end arrays). Same return shape as `edge_self_intersections`,
+    ids[0] indexing the first set and ids[1] the second.
     """
-    return _edge_cross_intersections_impl(pts1_start, pts1_end, pts2_start, pts2_end)
+    return _rs.edge_intersections(_f64(pts1_start), _f64(pts1_end), _f64(pts2_start), _f64(pts2_end))
 
 
 def is_inside(xs: np.ndarray, ys: np.ndarray, x: float, y: float, include_boundary: bool = True) -> bool:
-    """Point-in-polygon test for a single ring. See `_primitives.is_inside`."""
-    return _is_inside_impl(xs, ys, x, y, include_boundary)
+    """Point-in-polygon test (even-odd ray casting) for a single open
+    ring. A point exactly on an edge returns `include_boundary`.
+    """
+    return _rs.is_inside(xs, ys, x, y, include_boundary)
 
 
 def sanitize_polygon(xs, ys, tol: float = 1e-9, closed: bool = True):
-    """Remove degenerate/duplicate points from a polygon or polyline. See
-    `_simplify.sanitize_polygon`.
+    """Remove consecutive duplicate / near-duplicate points (distance <=
+    tol) until stable, so every segment has non-zero length.
+
+    For `closed=True` the input may or may not repeat its first point;
+    the output always does (ODB++'s explicit-closure convention).
+
+    Raises:
+        ValueError: non-finite input, or fewer than 3 (closed) / 2
+            (open) distinct points left.
     """
-    return _sanitize_polygon_impl(xs, ys, tol, closed)
+    return _rs.sanitize_polygon(xs, ys, tol, closed)
 
 
 def simplify_polyline(xs, ys, delta: float):
-    """Simplify a polyline with Ramer-Douglas-Peucker. See
-    `_simplify.simplify_polyline`.
+    """Ramer-Douglas-Peucker simplification of an open polyline (a closed
+    loop passed with its repeated first point stays closed -- the end
+    points are always kept). `delta` is the maximum perpendicular
+    deviation a dropped point may have, in the same units as xs/ys.
+
+    Note RDP keeps *extreme* points: on an outline with small bumps (via
+    pads on a straight edge) it keeps the bump tips, which skews long
+    straight edges -- use `regularize_polyline` for that kind of input.
     """
-    return _simplify_polyline_impl(xs, ys, delta)
+    return _rs.simplify_polyline(xs, ys, delta)
 
 
 def dezigzag_polyline(
     xs, ys, max_kink_length: float, max_angle_deg: float = 20.0, min_neighbor_factor: float = 3.0
 ):
-    """Remove short zigzag/step artifacts from a polyline. See
-    `_simplify.dezigzag_polyline`.
+    """Remove short zigzag/step artifacts: a segment shorter than
+    `max_kink_length` whose two neighbors are both at least
+    `max_kink_length * min_neighbor_factor` long and within
+    `max_angle_deg` of each other in direction is collapsed (its two end
+    points replaced by the neighbors' line intersection, or its midpoint
+    when that intersection isn't nearby). Repeats until stable. Open or
+    closed input; the first/last point is always kept.
     """
-    return _dezigzag_polyline_impl(xs, ys, max_kink_length, max_angle_deg, min_neighbor_factor)
+    return _rs.dezigzag_polyline(xs, ys, max_kink_length, max_angle_deg, min_neighbor_factor)
+
+
+def regularize_polyline(
+    xs,
+    ys,
+    tol: float,
+    dangle_deg: float = 5.0,
+    angle_tol_deg: float = 0.05,
+    min_anchor_len: float | None = None,
+    offset_tol: float = 5e-6,
+    vw_area: float | None = None,
+):
+    """Map-making style outline regularization of a closed ring: snap
+    the outline back onto its dominant straight lines and drop small
+    protrusions (e.g. via pads poking out of a copper edge), WITHOUT
+    skewing the long edges the way RDP does.
+
+    1. Anchors: edges whose direction is a multiple of `dangle_deg`
+       (within `angle_tol_deg`). An edge counts once the total length of
+       all collinear edges on its snapped line (offsets within
+       `offset_tol`) reaches `min_anchor_len` -- pieces of one real edge
+       chopped up by pads vote together; a lone arc segment doesn't.
+    2. Merge: consecutive anchors on the same line fuse when everything
+       between them stays within `tol` of that line (and progresses
+       forward along it) -- the bump is dropped, the edge is exact again.
+    3. Corners: two consecutive non-parallel lines are joined at their
+       intersection when the detour between them stays within `tol` of
+       the resulting corner -- rebuilds corners hidden under a pad.
+    4. Everything else (real arcs: trace end caps, round pads) is kept,
+       Visvalingam-Whyatt simplified with area threshold `vw_area`, its
+       end points projected exactly onto the neighboring lines.
+
+    Args:
+        xs, ys: one ring, open or closed (first point repeated); the
+            output keeps the same convention.
+        tol: largest detour (same units as xs/ys) that may be flattened
+            -- bigger than the bumps to remove, smaller than the
+            smallest real feature to keep (e.g. a slot width).
+        dangle_deg: snap-angle step; edges are only anchored on
+            multiples of it.
+        min_anchor_len: default `2 * tol`.
+        vw_area: default `tol**2`.
+
+    Returns:
+        (xs, ys) float64 arrays.
+    """
+    return _rs.regularize_polyline(xs, ys, tol, dangle_deg, angle_tol_deg, min_anchor_len, offset_tol, vw_area)
 
 
 def is_simple_ring(xs, ys, merge_tol: float = DEFAULT_MERGE_TOL) -> bool:
-    """True if a closed ring has no self-intersections. See
-    `_arrangement.is_simple_ring`.
+    """True if a closed ring (open form: first point != last) has no
+    transversal crossing, T-junction, or collinear overlap between any
+    two of its own edges, other than the vertex consecutive edges share.
+    Uses the same exact grid-integer split finder as the arrangement
+    engine (grid spacing `merge_tol`).
     """
-    return _is_simple_ring_impl(xs, ys, merge_tol)
+    return _rs.is_simple_ring(xs, ys, merge_tol)
 
+
+# --------------------------------------------------------------------------
+# polygon operations
+# --------------------------------------------------------------------------
 
 def poly_fragment(
     polys: list["Polygon"],
@@ -133,18 +197,35 @@ def poly_fragment(
     debug: bool = False,
 ) -> list["Polygon"]:
     """Fragment N polygons into mutually disjoint sub-polygons of their
-    combined planar arrangement. See `_fragment.poly_fragment` for the
-    full docstring and parameter details.
+    combined planar arrangement.
+
+    Args:
+        polys: input polygons. May overlap each other and/or be
+            individually self-intersecting; holes are part of the
+            arrangement.
+        merge_tol: absolute distance below which two points are
+            considered the same vertex.
+        t_tol: parametric (0..1, per-edge) tolerance for treating a
+            crossing as landing exactly on an existing endpoint.
+        area_tol: faces with |signed area| below this are dropped as
+            numerical noise.
+        keep: "positive" (default -- the interior fragments, nested
+            into polygons-with-holes via a containment forest),
+            "negative" (outer/component boundaries, mostly for
+            debugging), or "all".
+        filter_to_originals: drop any fragment that doesn't fall inside
+            at least one input polygon.
+        debug: if True, plot the returned fragments.
     """
-    return _poly_fragment_impl(
-        polys,
-        merge_tol=merge_tol,
-        t_tol=t_tol,
-        area_tol=area_tol,
-        keep=keep,
-        filter_to_originals=filter_to_originals,
-        debug=debug,
-    )
+    result = _rs.poly_fragment(polys, merge_tol, t_tol, area_tol, keep, filter_to_originals)
+    if debug:
+        from ..plot import GeometryPlotter
+
+        pl = GeometryPlotter()
+        for poly in result:
+            pl.add_polygon(poly, alpha=0.2)
+        pl.show()
+    return result
 
 
 def add_polygons(
@@ -153,8 +234,17 @@ def add_polygons(
     t_tol: float = DEFAULT_T_TOL,
     area_tol: float = DEFAULT_AREA_TOL,
 ) -> list["Polygon"]:
-    """Boolean union (fuse) of N polygons. See `_boolean_ops.add_polygons`."""
-    return _add_polygons_impl(*polys, merge_tol=merge_tol, t_tol=t_tol, area_tol=area_tol)
+    """Boolean union (fuse) of N polygons: keep anything inside at least
+    one of them. Holes (at any nesting depth) of every input are
+    respected; the result is nested polygons-with-holes.
+
+    Built on an exact-predicate arrangement: coordinates snap to a
+    `merge_tol` integer grid and every touch/crossing/overlap decision
+    is exact. Operands whose bounding boxes are farther apart than
+    `merge_tol` are processed as independent clusters. `t_tol` is
+    accepted for API compatibility and unused.
+    """
+    return _rs.boolean_op(polys, "add", 0, merge_tol, area_tol)
 
 
 def intersect_polygons(
@@ -163,8 +253,10 @@ def intersect_polygons(
     t_tol: float = DEFAULT_T_TOL,
     area_tol: float = DEFAULT_AREA_TOL,
 ) -> list["Polygon"]:
-    """Boolean intersection of N polygons. See `_boolean_ops.intersect_polygons`."""
-    return _intersect_polygons_impl(*polys, merge_tol=merge_tol, t_tol=t_tol, area_tol=area_tol)
+    """Boolean intersection of N polygons: keep only what's inside every
+    one of them. See `add_polygons` for the engine and parameters.
+    """
+    return _rs.boolean_op(polys, "intersect", 0, merge_tol, area_tol)
 
 
 def subtract_polygons(
@@ -174,10 +266,13 @@ def subtract_polygons(
     t_tol: float = DEFAULT_T_TOL,
     area_tol: float = DEFAULT_AREA_TOL,
 ) -> list["Polygon"]:
-    """Boolean subtraction: union(add) minus union(subtract). See
-    `_boolean_ops.subtract_polygons`.
+    """Boolean subtraction: union(add) minus union(subtract), in one pass
+    (not pairwise) -- a region survives iff it's inside at least one
+    `add` polygon and inside none of the `subtract` polygons. See
+    `add_polygons` for the engine and parameters.
     """
-    return _subtract_polygons_impl(add, subtract, merge_tol=merge_tol, t_tol=t_tol, area_tol=area_tol)
+    add = list(add)
+    return _rs.boolean_op(add + list(subtract), "subtract", len(add), merge_tol, area_tol)
 
 
 def join_polygons(
@@ -186,23 +281,39 @@ def join_polygons(
     t_tol: float = DEFAULT_T_TOL,
     area_tol: float = DEFAULT_AREA_TOL,
 ) -> list["Polygon"]:
-    """Fuse polygons that meet edge-to-edge into fewer, larger polygons.
-    See `_join.join_polygons` for the full docstring, including exactly
-    what it refuses to do and why. Imported lazily -- see this module's
-    docstring.
-    """
-    from ._join import join_polygons as _impl
+    """Fuse polygons that meet edge-to-edge into fewer, larger polygons,
+    dissolving every boundary shared between two of them -- and
+    assembling whatever holes/islands that touching implies (e.g. four
+    strips forming a picture frame come back as one polygon with a hole).
 
-    return _impl(polys, merge_tol=merge_tol, t_tol=t_tol, area_tol=area_tol)
+    Unlike `add_polygons`, join refuses overlapping input: it raises
+    `GeometryException` if any two inputs' interiors genuinely overlap
+    (a transversal crossing, a same-side collinear overlap, or one input
+    fully inside another), since it won't guess how to resolve that.
+    A single input is returned unchanged (same object).
+    """
+    if len(polys) <= 1:
+        return list(polys)
+    return _rs.boolean_op(polys, "join", 0, merge_tol, area_tol)
 
 
 def dekeyhole_polygon(poly: "Polygon", tol: float = DEFAULT_MERGE_TOL) -> "Polygon":
-    """Replace a polygon's keyhole bridges with real `Polygon.holes`.
-    See `_keyhole.dekeyhole_polygon` for the full docstring.
+    """Replace keyhole bridges with real `Polygon.holes`.
+
+    Keyhole encoding (common in ODB++/Gerber) represents a hole by
+    letting the outline dip in, trace the hole, and come back out --
+    via a single shared vertex or a two-point slit. Both show up as a
+    repeated vertex (within `tol`); each one splits off a sub-ring, and
+    the sub-rings are nested by geometric containment. Recurses into
+    `poly.holes` too.
+
+    Raises:
+        GeometryException: an extracted sub-ring isn't nested inside the
+            outer boundary (malformed input).
     """
-    return _dekeyhole_polygon_impl(poly, tol=tol)
+    return _rs.dekeyhole_polygon(poly, tol)
 
 
 def dekeyhole_polygons(polys: list["Polygon"], tol: float = DEFAULT_MERGE_TOL) -> list["Polygon"]:
-    """Batch version of `dekeyhole_polygon`. See `_keyhole.dekeyhole_polygons`."""
-    return _dekeyhole_polygons_impl(polys, tol=tol)
+    """Batch version of `dekeyhole_polygon` (processed in parallel)."""
+    return _rs.dekeyhole_polygons(polys, tol)

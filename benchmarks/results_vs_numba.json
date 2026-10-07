@@ -1,0 +1,1127 @@
+{
+ "meta": {
+  "python": "3.10.18",
+  "numpy": "2.2.6",
+  "numba": "0.66.0",
+  "machine": "macOS-26.6.2-arm64-arm-64bit",
+  "cpus": 14
+ },
+ "startup": {
+  "rust": [
+   0.16964387509506196,
+   0.1697870420757681
+  ],
+  "numba": [
+   0.16955845803022385,
+   0.30648091598413885
+  ],
+  "numba_cold_jit": [
+   0.17291475005913526,
+   2.1750072919530794
+  ]
+ },
+ "suite": {
+  "rust": {
+   "exit": 0,
+   "wall": 1.2276763330446556,
+   "times": {
+    "tests/test_01_add_subtract_basic.py::test_add_disjoint_squares_stays_two_pieces": [
+     0.0001775840064510703,
+     1.525005791336298e-05,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_add_overlapping_squares_merges_to_one": [
+     3.966700751334429e-05,
+     1.2125005014240742e-05,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_add_identical_squares_collapses_to_one": [
+     3.8375030271708965e-05,
+     9.832903742790222e-06,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_add_fully_nested_no_touch_drops_inner": [
+     3.324996214359999e-05,
+     1.0665971785783768e-05,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_add_three_way_chain_overlap": [
+     6.220804061740637e-05,
+     1.4125020243227482e-05,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_subtract_partial_overlap_notches_corner": [
+     3.583391662687063e-05,
+     1.2166914530098438e-05,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_subtract_full_containment_creates_untouched_hole": [
+     3.0166003853082657e-05,
+     1.2249918654561043e-05,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_subtract_disjoint_is_a_no_op": [
+     2.8708018362522125e-05,
+     1.1416035704314709e-05,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_subtract_everything_leaves_nothing": [
+     2.62079993262887e-05,
+     8.375034667551517e-06,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_intersect_overlapping_squares": [
+     3.74580267816782e-05,
+     1.1166906915605068e-05,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_intersect_disjoint_squares_is_empty": [
+     2.5791930966079235e-05,
+     8.624978363513947e-06,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_intersect_nested_no_touch_equals_inner": [
+     3.258406650274992e-05,
+     1.1541997082531452e-05,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_total_area_helper_sanity": [
+     1.5916069969534874e-05,
+     3.3329706639051437e-06,
+     500
+    ],
+    "tests/test_02_touching.py::test_join_shared_edge_merges_into_one_rectangle": [
+     3.829202614724636e-05,
+     1.083302777260542e-05,
+     500
+    ],
+    "tests/test_02_touching.py::test_join_partial_collinear_overlap": [
+     3.445800393819809e-05,
+     1.0917079634964466e-05,
+     500
+    ],
+    "tests/test_02_touching.py::test_add_polygons_touching_squares_matches_join": [
+     2.9833056032657623e-05,
+     1.0749907232820988e-05,
+     500
+    ],
+    "tests/test_02_touching.py::test_join_single_polygon_passthrough": [
+     1.4708028174936771e-05,
+     2.7909409254789352e-06,
+     500
+    ],
+    "tests/test_02_touching.py::test_join_empty_list": [
+     1.2375065125524998e-05,
+     2.1670712158083916e-06,
+     500
+    ],
+    "tests/test_02_touching.py::test_join_raises_on_genuine_crossing": [
+     5.9165991842746735e-05,
+     1.2415926903486252e-05,
+     500
+    ],
+    "tests/test_02_touching.py::test_join_detects_corner_only_overlap_as_a_genuine_crossing": [
+     3.2832962460815907e-05,
+     1.1875061318278313e-05,
+     500
+    ],
+    "tests/test_02_touching.py::test_join_raises_on_untouched_solid_in_solid_different_source": [
+     2.7208938263356686e-05,
+     1.0999967344105244e-05,
+     500
+    ],
+    "tests/test_02_touching.py::test_join_raises_on_segment_shared_by_three": [
+     2.9791961424052715e-05,
+     1.1625001206994057e-05,
+     500
+    ],
+    "tests/test_03_holes.py::test_explicit_hole_area": [
+     9.187497198581696e-05,
+     1.5249941498041153e-05,
+     500
+    ],
+    "tests/test_03_holes.py::test_polygon_rejects_hole_crossing_its_own_boundary": [
+     3.6499928683042526e-05,
+     1.4499993994832039e-05,
+     500
+    ],
+    "tests/test_03_holes.py::test_polygon_rejects_hole_outside_its_boundary": [
+     3.9375037886202335e-05,
+     1.5749945305287838e-05,
+     500
+    ],
+    "tests/test_03_holes.py::test_polygon_rejects_two_holes_crossing_each_other": [
+     4.937499761581421e-05,
+     3.095809370279312e-05,
+     500
+    ],
+    "tests/test_03_holes.py::test_subtract_two_disjoint_untouched_holes": [
+     6.679096259176731e-05,
+     1.525005791336298e-05,
+     500
+    ],
+    "tests/test_03_holes.py::test_join_ring_of_touching_pieces_forms_a_hole": [
+     4.237494431436062e-05,
+     1.7999904230237007e-05,
+     500
+    ],
+    "tests/test_03_holes.py::test_add_polygons_ring_of_touching_pieces_forms_a_hole": [
+     3.4541008062660694e-05,
+     1.6541918739676476e-05,
+     500
+    ],
+    "tests/test_03_holes.py::test_add_many_touching_pieces_forming_a_ring_with_untouched_boundary_loops": [
+     0.00017666607163846493,
+     8.05840827524662e-05,
+     500
+    ],
+    "tests/test_03_holes.py::test_add_polygon_with_hole_plus_disjoint_square_stays_two_pieces": [
+     7.729197386652231e-05,
+     2.8416980057954788e-05,
+     500
+    ],
+    "tests/test_04_islands_in_holes.py::test_add_untouched_island_into_a_subtract_carved_hole": [
+     5.845795385539532e-05,
+     2.574990503489971e-05,
+     500
+    ],
+    "tests/test_04_islands_in_holes.py::test_add_island_touching_the_hole_boundary_still_works": [
+     5.445792339742184e-05,
+     2.1124957129359245e-05,
+     500
+    ],
+    "tests/test_04_islands_in_holes.py::test_two_disjoint_islands_in_the_same_hole": [
+     6.187497638165951e-05,
+     2.5916029699146748e-05,
+     500
+    ],
+    "tests/test_04_islands_in_holes.py::test_islands_in_two_separate_holes": [
+     7.241696584969759e-05,
+     3.087497316300869e-05,
+     500
+    ],
+    "tests/test_04_islands_in_holes.py::test_deeply_nested_alternating_islands_and_holes": [
+     9.933300316333771e-05,
+     5.5541982874274254e-05,
+     500
+    ],
+    "tests/test_04_islands_in_holes.py::test_join_polygons_untouched_island_in_a_dynamically_formed_gap": [
+     5.520798731595278e-05,
+     2.245896030217409e-05,
+     500
+    ],
+    "tests/test_04_islands_in_holes.py::test_add_polygons_untouched_island_in_a_dynamically_formed_gap": [
+     3.891694359481335e-05,
+     2.0459061488509178e-05,
+     500
+    ],
+    "tests/test_04_islands_in_holes.py::test_join_polygons_two_islands_in_a_dynamically_formed_gap": [
+     5.845795385539532e-05,
+     2.3333006538450718e-05,
+     500
+    ],
+    "tests/test_05_bbox_clustering.py::test_add_many_disjoint_squares_stays_separate": [
+     0.0006686249980702996,
+     0.00019404094200581312,
+     500
+    ],
+    "tests/test_05_bbox_clustering.py::test_add_straddles_a_cluster_boundary": [
+     4.895799793303013e-05,
+     1.9000028260052204e-05,
+     500
+    ],
+    "tests/test_05_bbox_clustering.py::test_add_island_in_a_dynamically_formed_gap_far_from_a_second_cluster": [
+     8.395803160965443e-05,
+     4.2208004742860794e-05,
+     500
+    ],
+    "tests/test_05_bbox_clustering.py::test_intersect_across_disjoint_clusters_is_empty": [
+     3.220909275114536e-05,
+     1.1874944902956486e-05,
+     500
+    ],
+    "tests/test_05_bbox_clustering.py::test_intersect_within_one_cluster_still_works": [
+     3.6125071346759796e-05,
+     1.1458061635494232e-05,
+     500
+    ],
+    "tests/test_05_bbox_clustering.py::test_subtract_irrelevant_remove_only_cluster_is_a_noop": [
+     6.641598884016275e-05,
+     2.2000051103532314e-05,
+     500
+    ],
+    "tests/test_05_bbox_clustering.py::test_join_two_independent_frames_far_apart": [
+     6.729201413691044e-05,
+     3.2334006391465664e-05,
+     500
+    ],
+    "tests/test_05_bbox_clustering.py::test_join_still_raises_on_genuine_overlap_within_a_cluster": [
+     4.9708993174135685e-05,
+     1.1707888916134834e-05,
+     500
+    ],
+    "tests/test_05_bbox_clustering.py::test_join_raises_even_with_an_unrelated_far_away_cluster_present": [
+     4.449998959898949e-05,
+     1.5875091776251793e-05,
+     500
+    ],
+    "tests/test_05_bbox_clustering.py::test_add_many_disjoint_squares_is_fast": [
+     0.004477499984204769,
+     0.0037738329265266657,
+     57
+    ],
+    "tests/test_06_dezigzag.py::test_parallel_offset_kink_is_collapsed": [
+     3.600004129111767e-05,
+     3.583962097764015e-06,
+     500
+    ],
+    "tests/test_06_dezigzag.py::test_converging_shallow_kink_is_collapsed": [
+     1.4375080354511738e-05,
+     2.6670750230550766e-06,
+     500
+    ],
+    "tests/test_06_dezigzag.py::test_genuine_corner_is_left_alone": [
+     1.8208054825663567e-05,
+     2.7079368010163307e-06,
+     500
+    ],
+    "tests/test_06_dezigzag.py::test_short_neighbors_are_not_collapsed": [
+     2.7542002499103546e-05,
+     2.584070898592472e-06,
+     500
+    ],
+    "tests/test_06_dezigzag.py::test_large_kink_length_is_not_touched": [
+     1.7625046893954277e-05,
+     2.7080532163381577e-06,
+     500
+    ],
+    "tests/test_06_dezigzag.py::test_polygon_dezigzag_in_place_and_recurses_into_holes": [
+     0.00010495900642126799,
+     2.762500662356615e-05,
+     500
+    ],
+    "tests/test_06_dezigzag.py::test_dezigzag_never_produces_a_wild_far_away_point": [
+     1.8417020328342915e-05,
+     3.1249364838004112e-06,
+     500
+    ],
+    "tests/test_08_ring_safety.py::test_simple_convex_ring_is_simple": [
+     2.2875028662383556e-05,
+     2.5830231606960297e-06,
+     500
+    ],
+    "tests/test_08_ring_safety.py::test_simple_concave_many_vertex_ring_is_simple": [
+     1.550000160932541e-05,
+     2.7079368010163307e-06,
+     500
+    ],
+    "tests/test_08_ring_safety.py::test_bowtie_ring_is_not_simple": [
+     1.3875076547265053e-05,
+     2.5830231606960297e-06,
+     500
+    ],
+    "tests/test_08_ring_safety.py::test_spike_folding_back_on_itself_is_not_simple": [
+     1.7249956727027893e-05,
+     2.750079147517681e-06,
+     500
+    ],
+    "tests/test_08_ring_safety.py::test_apply_ring_transform_rejects_self_intersecting_candidate": [
+     2.2124964743852615e-05,
+     3.915978595614433e-06,
+     500
+    ],
+    "tests/test_08_ring_safety.py::test_apply_ring_transform_commits_a_valid_candidate": [
+     1.9208062440156937e-05,
+     4.707952030003071e-06,
+     500
+    ],
+    "tests/test_08_ring_safety.py::test_apply_ring_transform_rejects_a_self_intersecting_hole_only": [
+     6.337498780339956e-05,
+     2.4833017960190773e-05,
+     500
+    ],
+    "tests/test_08_ring_safety.py::test_dezigzag_never_produces_a_self_intersecting_result": [
+     3.98330157622695e-05,
+     1.1499971151351929e-05,
+     500
+    ]
+   }
+  },
+  "numba": {
+   "exit": 0,
+   "wall": 9.940635540988296,
+   "times": {
+    "tests/test_01_add_subtract_basic.py::test_add_disjoint_squares_stays_two_pieces": [
+     0.15727950003929436,
+     0.0005624999757856131,
+     218
+    ],
+    "tests/test_01_add_subtract_basic.py::test_add_overlapping_squares_merges_to_one": [
+     0.0004276670515537262,
+     0.00029454100877046585,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_add_identical_squares_collapses_to_one": [
+     0.0003552919952198863,
+     0.0002796670887619257,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_add_fully_nested_no_touch_drops_inner": [
+     0.0003696250496432185,
+     0.00029154191724956036,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_add_three_way_chain_overlap": [
+     0.0004438749747350812,
+     0.00034849997609853745,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_subtract_partial_overlap_notches_corner": [
+     0.00041854195296764374,
+     0.00031279202084988356,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_subtract_full_containment_creates_untouched_hole": [
+     0.0004211670020595193,
+     0.00032783299684524536,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_subtract_disjoint_is_a_no_op": [
+     0.0005339169874787331,
+     0.0004238749388605356,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_subtract_everything_leaves_nothing": [
+     0.00022429192904382944,
+     0.00018099998123943806,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_intersect_overlapping_squares": [
+     0.00045870791655033827,
+     0.00030291604343801737,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_intersect_disjoint_squares_is_empty": [
+     0.00045012496411800385,
+     0.00028558296617120504,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_intersect_nested_no_touch_equals_inner": [
+     0.0016799999866634607,
+     0.0002919159596785903,
+     500
+    ],
+    "tests/test_01_add_subtract_basic.py::test_total_area_helper_sanity": [
+     2.562499139457941e-05,
+     3.374996595084667e-06,
+     500
+    ],
+    "tests/test_02_touching.py::test_join_shared_edge_merges_into_one_rectangle": [
+     0.0006161669734865427,
+     0.0002982909791171551,
+     500
+    ],
+    "tests/test_02_touching.py::test_join_partial_collinear_overlap": [
+     0.00038633402436971664,
+     0.00030308403074741364,
+     500
+    ],
+    "tests/test_02_touching.py::test_add_polygons_touching_squares_matches_join": [
+     0.0004747499478980899,
+     0.00028549996204674244,
+     500
+    ],
+    "tests/test_02_touching.py::test_join_single_polygon_passthrough": [
+     1.9708997569978237e-05,
+     4.124944098293781e-06,
+     500
+    ],
+    "tests/test_02_touching.py::test_join_empty_list": [
+     1.5457975678145885e-05,
+     3.3329706639051437e-06,
+     500
+    ],
+    "tests/test_02_touching.py::test_join_raises_on_genuine_crossing": [
+     0.00033708405680954456,
+     0.0001952920574694872,
+     500
+    ],
+    "tests/test_02_touching.py::test_join_detects_corner_only_overlap_as_a_genuine_crossing": [
+     0.0002477500820532441,
+     0.00018458301201462746,
+     500
+    ],
+    "tests/test_02_touching.py::test_join_raises_on_untouched_solid_in_solid_different_source": [
+     0.0002525000600144267,
+     0.0001782919280230999,
+     500
+    ],
+    "tests/test_02_touching.py::test_join_raises_on_segment_shared_by_three": [
+     0.0002865829737856984,
+     0.00019220798276364803,
+     500
+    ],
+    "tests/test_03_holes.py::test_explicit_hole_area": [
+     0.0018207080429419875,
+     3.2207928597927094e-05,
+     500
+    ],
+    "tests/test_03_holes.py::test_polygon_rejects_hole_crossing_its_own_boundary": [
+     4.3958076275885105e-05,
+     1.679197885096073e-05,
+     500
+    ],
+    "tests/test_03_holes.py::test_polygon_rejects_hole_outside_its_boundary": [
+     9.666697587817907e-05,
+     3.2624928280711174e-05,
+     500
+    ],
+    "tests/test_03_holes.py::test_polygon_rejects_two_holes_crossing_each_other": [
+     0.00010145897977054119,
+     6.570806726813316e-05,
+     500
+    ],
+    "tests/test_03_holes.py::test_subtract_two_disjoint_untouched_holes": [
+     0.0005457919323816895,
+     0.00034612498711794615,
+     500
+    ],
+    "tests/test_03_holes.py::test_join_ring_of_touching_pieces_forms_a_hole": [
+     0.0005035829963162541,
+     0.0003767499001696706,
+     500
+    ],
+    "tests/test_03_holes.py::test_add_polygons_ring_of_touching_pieces_forms_a_hole": [
+     0.00044112501200288534,
+     0.000353541923686862,
+     500
+    ],
+    "tests/test_03_holes.py::test_add_many_touching_pieces_forming_a_ring_with_untouched_boundary_loops": [
+     0.001345749944448471,
+     0.0010442499769851565,
+     251
+    ],
+    "tests/test_03_holes.py::test_add_polygon_with_hole_plus_disjoint_square_stays_two_pieces": [
+     0.0007746249902993441,
+     0.0006016669794917107,
+     427
+    ],
+    "tests/test_04_islands_in_holes.py::test_add_untouched_island_into_a_subtract_carved_hole": [
+     0.0021005000453442335,
+     0.0006447910564020276,
+     383
+    ],
+    "tests/test_04_islands_in_holes.py::test_add_island_touching_the_hole_boundary_still_works": [
+     0.0007945839315652847,
+     0.0006711670430377126,
+     399
+    ],
+    "tests/test_04_islands_in_holes.py::test_two_disjoint_islands_in_the_same_hole": [
+     0.0008178330026566982,
+     0.0007174999918788671,
+     373
+    ],
+    "tests/test_04_islands_in_holes.py::test_islands_in_two_separate_holes": [
+     0.0009354170178994536,
+     0.0007804159540683031,
+     341
+    ],
+    "tests/test_04_islands_in_holes.py::test_deeply_nested_alternating_islands_and_holes": [
+     0.0021533749531954527,
+     0.0015457500703632832,
+     177
+    ],
+    "tests/test_04_islands_in_holes.py::test_join_polygons_untouched_island_in_a_dynamically_formed_gap": [
+     0.0005271669942885637,
+     0.0004220829578116536,
+     500
+    ],
+    "tests/test_04_islands_in_holes.py::test_add_polygons_untouched_island_in_a_dynamically_formed_gap": [
+     0.0004950000438839197,
+     0.00040016695857048035,
+     500
+    ],
+    "tests/test_04_islands_in_holes.py::test_join_polygons_two_islands_in_a_dynamically_formed_gap": [
+     0.0004954580217599869,
+     0.0004476249450817704,
+     500
+    ],
+    "tests/test_05_bbox_clustering.py::test_add_many_disjoint_squares_stays_separate": [
+     0.0165745000122115,
+     0.014755917014554143,
+     20
+    ],
+    "tests/test_05_bbox_clustering.py::test_add_straddles_a_cluster_boundary": [
+     0.0007858340395614505,
+     0.0006047919159755111,
+     435
+    ],
+    "tests/test_05_bbox_clustering.py::test_add_island_in_a_dynamically_formed_gap_far_from_a_second_cluster": [
+     0.001092666992917657,
+     0.0008535420056432486,
+     315
+    ],
+    "tests/test_05_bbox_clustering.py::test_intersect_across_disjoint_clusters_is_empty": [
+     0.00039858301170170307,
+     0.00033391593024134636,
+     500
+    ],
+    "tests/test_05_bbox_clustering.py::test_intersect_within_one_cluster_still_works": [
+     0.00039795797783881426,
+     0.0002946250606328249,
+     500
+    ],
+    "tests/test_05_bbox_clustering.py::test_subtract_irrelevant_remove_only_cluster_is_a_noop": [
+     0.0008646670030429959,
+     0.000743458978831768,
+     348
+    ],
+    "tests/test_05_bbox_clustering.py::test_join_two_independent_frames_far_apart": [
+     0.0009225410176441073,
+     0.0007532499730587006,
+     354
+    ],
+    "tests/test_05_bbox_clustering.py::test_join_still_raises_on_genuine_overlap_within_a_cluster": [
+     0.0002870829775929451,
+     0.00018558395095169544,
+     500
+    ],
+    "tests/test_05_bbox_clustering.py::test_join_raises_even_with_an_unrelated_far_away_cluster_present": [
+     0.00023804104421287775,
+     0.0001926659606397152,
+     500
+    ],
+    "tests/test_05_bbox_clustering.py::test_add_many_disjoint_squares_is_fast": [
+     0.4471097920322791,
+     0.4471097920322791,
+     1
+    ],
+    "tests/test_06_dezigzag.py::test_parallel_offset_kink_is_collapsed": [
+     0.0006157079478725791,
+     6.458023563027382e-06,
+     500
+    ],
+    "tests/test_06_dezigzag.py::test_converging_shallow_kink_is_collapsed": [
+     2.4166889488697052e-05,
+     5.792011506855488e-06,
+     500
+    ],
+    "tests/test_06_dezigzag.py::test_genuine_corner_is_left_alone": [
+     2.3416941985487938e-05,
+     5.500041879713535e-06,
+     500
+    ],
+    "tests/test_06_dezigzag.py::test_short_neighbors_are_not_collapsed": [
+     1.795799471437931e-05,
+     3.7079444155097008e-06,
+     500
+    ],
+    "tests/test_06_dezigzag.py::test_large_kink_length_is_not_touched": [
+     3.091699909418821e-05,
+     4.91610262542963e-06,
+     500
+    ],
+    "tests/test_06_dezigzag.py::test_polygon_dezigzag_in_place_and_recurses_into_holes": [
+     0.00020970799960196018,
+     9.258289355784655e-05,
+     500
+    ],
+    "tests/test_06_dezigzag.py::test_dezigzag_never_produces_a_wild_far_away_point": [
+     2.0749983377754688e-05,
+     5.917041562497616e-06,
+     500
+    ],
+    "tests/test_08_ring_safety.py::test_simple_convex_ring_is_simple": [
+     3.7958030588924885e-05,
+     1.2749922461807728e-05,
+     500
+    ],
+    "tests/test_08_ring_safety.py::test_simple_concave_many_vertex_ring_is_simple": [
+     3.887503407895565e-05,
+     1.300009898841381e-05,
+     500
+    ],
+    "tests/test_08_ring_safety.py::test_bowtie_ring_is_not_simple": [
+     3.7041958421468735e-05,
+     1.2708012945950031e-05,
+     500
+    ],
+    "tests/test_08_ring_safety.py::test_spike_folding_back_on_itself_is_not_simple": [
+     3.133295103907585e-05,
+     1.3125012628734112e-05,
+     500
+    ],
+    "tests/test_08_ring_safety.py::test_apply_ring_transform_rejects_self_intersecting_candidate": [
+     4.416704177856445e-05,
+     1.466704998165369e-05,
+     500
+    ],
+    "tests/test_08_ring_safety.py::test_apply_ring_transform_commits_a_valid_candidate": [
+     4.066701512783766e-05,
+     1.550000160932541e-05,
+     500
+    ],
+    "tests/test_08_ring_safety.py::test_apply_ring_transform_rejects_a_self_intersecting_hole_only": [
+     0.0001646659802645445,
+     7.679197005927563e-05,
+     500
+    ],
+    "tests/test_08_ring_safety.py::test_dezigzag_never_produces_a_self_intersecting_result": [
+     0.00014116696547716856,
+     7.745798211544752e-05,
+     500
+    ]
+   }
+  }
+ },
+ "workloads": [
+  {
+   "name": "union: overlapping pad grid",
+   "size": "4x4 pads",
+   "edges": 512,
+   "rust": 0.00017337501049041748,
+   "numba": 0.0031937500461935997,
+   "phases": {
+    "extract": 9.542e-06,
+    "compute": 0.00016825,
+    "build": 5.292e-06,
+    "n_out": 1
+   }
+  },
+  {
+   "name": "union: overlapping pad grid",
+   "size": "8x8 pads",
+   "edges": 2048,
+   "rust": 0.000894750002771616,
+   "numba": 0.015202999929897487,
+   "phases": {
+    "extract": 4.0333e-05,
+    "compute": 0.000941667,
+    "build": 2.475e-05,
+    "n_out": 1
+   }
+  },
+  {
+   "name": "union: overlapping pad grid",
+   "size": "16x16 pads",
+   "edges": 8192,
+   "rust": 0.003528667031787336,
+   "numba": 0.1013679999159649,
+   "phases": {
+    "extract": 0.000123125,
+    "compute": 0.0034225,
+    "build": 0.000130792,
+    "n_out": 1
+   }
+  },
+  {
+   "name": "union: overlapping pad grid",
+   "size": "24x24 pads",
+   "edges": 18432,
+   "rust": 0.007924624951556325,
+   "numba": 0.37017825001385063,
+   "phases": {
+    "extract": 0.000280792,
+    "compute": 0.007356083,
+    "build": 0.000329417,
+    "n_out": 1
+   }
+  },
+  {
+   "name": "union: overlapping pad grid",
+   "size": "32x32 pads",
+   "edges": 32768,
+   "rust": 0.014459250029176474,
+   "numba": 1.013184709008783,
+   "phases": {
+    "extract": 0.000507541,
+    "compute": 0.013498792,
+    "build": 0.000562833,
+    "n_out": 1
+   }
+  },
+  {
+   "name": "union: routed traces + pads",
+   "size": "25 traces",
+   "edges": 1250,
+   "rust": 0.0004813750274479389,
+   "numba": 0.009428500081412494,
+   "phases": {
+    "extract": 2.6625e-05,
+    "compute": 0.000485292,
+    "build": 1.3208e-05,
+    "n_out": 17
+   }
+  },
+  {
+   "name": "union: routed traces + pads",
+   "size": "100 traces",
+   "edges": 5000,
+   "rust": 0.002564416965469718,
+   "numba": 0.05664795800112188,
+   "phases": {
+    "extract": 0.000111833,
+    "compute": 0.002508167,
+    "build": 5.0458e-05,
+    "n_out": 28
+   }
+  },
+  {
+   "name": "union: routed traces + pads",
+   "size": "200 traces",
+   "edges": 10000,
+   "rust": 0.006683083018288016,
+   "numba": 0.1707025000359863,
+   "phases": {
+    "extract": 0.0002075,
+    "compute": 0.00663875,
+    "build": 0.000148208,
+    "n_out": 5
+   }
+  },
+  {
+   "name": "union: routed traces + pads",
+   "size": "400 traces",
+   "edges": 20000,
+   "rust": 0.01809500006493181,
+   "numba": 0.5891747500281781,
+   "phases": {
+    "extract": 0.00040075,
+    "compute": 0.017640959,
+    "build": 0.000376708,
+    "n_out": 3
+   }
+  },
+  {
+   "name": "union: routed traces + pads",
+   "size": "800 traces",
+   "edges": 40000,
+   "rust": 0.05951220809947699,
+   "numba": 2.1586824998958036,
+   "phases": {
+    "extract": 0.000816542,
+    "compute": 0.058691417,
+    "build": 0.000596291,
+    "n_out": 3
+   }
+  },
+  {
+   "name": "subtract: pour - clearances",
+   "size": "25 vias",
+   "edges": 640,
+   "rust": 0.000222250004298985,
+   "numba": 0.004160249955020845,
+   "phases": {
+    "extract": 1.2875e-05,
+    "compute": 0.000198084,
+    "build": 1.1375e-05,
+    "n_out": 1
+   }
+  },
+  {
+   "name": "subtract: pour - clearances",
+   "size": "100 vias",
+   "edges": 2584,
+   "rust": 0.001154709025286138,
+   "numba": 0.020738833933137357,
+   "phases": {
+    "extract": 4.3583e-05,
+    "compute": 0.001236917,
+    "build": 5.025e-05,
+    "n_out": 1
+   }
+  },
+  {
+   "name": "subtract: pour - clearances",
+   "size": "200 vias",
+   "edges": 5164,
+   "rust": 0.0023112500784918666,
+   "numba": 0.053926708991639316,
+   "phases": {
+    "extract": 9.7375e-05,
+    "compute": 0.002341959,
+    "build": 9.6625e-05,
+    "n_out": 1
+   }
+  },
+  {
+   "name": "subtract: pour - clearances",
+   "size": "400 vias",
+   "edges": 10324,
+   "rust": 0.004889540956355631,
+   "numba": 0.15256341604981571,
+   "phases": {
+    "extract": 0.000195709,
+    "compute": 0.004488208,
+    "build": 0.000173833,
+    "n_out": 1
+   }
+  },
+  {
+   "name": "subtract: pour - clearances",
+   "size": "800 vias",
+   "edges": 20644,
+   "rust": 0.010734583018347621,
+   "numba": 0.49645324994344264,
+   "phases": {
+    "extract": 0.000424833,
+    "compute": 0.009932125,
+    "build": 0.000352459,
+    "n_out": 27
+   }
+  },
+  {
+   "name": "union: disjoint pads (clustered)",
+   "size": "100 pads",
+   "edges": 2400,
+   "rust": 0.00045237503945827484,
+   "numba": 0.03904895798768848,
+   "phases": {
+    "extract": 4e-05,
+    "compute": 0.000397375,
+    "build": 5.2916e-05,
+    "n_out": 100
+   }
+  },
+  {
+   "name": "union: disjoint pads (clustered)",
+   "size": "1000 pads",
+   "edges": 24000,
+   "rust": 0.0034098749747499824,
+   "numba": 0.39996537507977337,
+   "phases": {
+    "extract": 0.000426084,
+    "compute": 0.0021115,
+    "build": 0.000627125,
+    "n_out": 1000
+   }
+  },
+  {
+   "name": "union: disjoint pads (clustered)",
+   "size": "4000 pads",
+   "edges": 96000,
+   "rust": 0.013933500042185187,
+   "numba": 1.5931823330465704,
+   "phases": {
+    "extract": 0.001772208,
+    "compute": 0.008215583,
+    "build": 0.003397209,
+    "n_out": 4000
+   }
+  },
+  {
+   "name": "union: disjoint pads (clustered)",
+   "size": "10000 pads",
+   "edges": 240000,
+   "rust": 0.03614774998277426,
+   "numba": 4.0196151660056785,
+   "phases": {
+    "extract": 0.004452875,
+    "compute": 0.020198833,
+    "build": 0.008658375,
+    "n_out": 10000
+   }
+  },
+  {
+   "name": "join: touching tiles",
+   "size": "10x10 tiles",
+   "edges": 320,
+   "rust": 0.00011470797471702099,
+   "numba": 0.0022090000566095114,
+   "phases": {
+    "extract": 1.7083e-05,
+    "compute": 9.9042e-05,
+    "build": 9.208e-06,
+    "n_out": 4
+   }
+  },
+  {
+   "name": "join: touching tiles",
+   "size": "20x20 tiles",
+   "edges": 1280,
+   "rust": 0.0005724580259993672,
+   "numba": 0.009818833088502288,
+   "phases": {
+    "extract": 6.6958e-05,
+    "compute": 0.000469084,
+    "build": 2.5625e-05,
+    "n_out": 8
+   }
+  },
+  {
+   "name": "join: touching tiles",
+   "size": "40x40 tiles",
+   "edges": 5120,
+   "rust": 0.001950667006894946,
+   "numba": 0.05795775004662573,
+   "phases": {
+    "extract": 0.000250583,
+    "compute": 0.00153725,
+    "build": 0.000125625,
+    "n_out": 16
+   }
+  },
+  {
+   "name": "join: touching tiles",
+   "size": "60x60 tiles",
+   "edges": 11520,
+   "rust": 0.004581333952955902,
+   "numba": 0.19633808301296085,
+   "phases": {
+    "extract": 0.000557125,
+    "compute": 0.003797959,
+    "build": 0.000351125,
+    "n_out": 24
+   }
+  },
+  {
+   "name": "poly_fragment: pad grid",
+   "size": "6x6 pads",
+   "edges": 576,
+   "rust": 0.0004229999613016844,
+   "numba": 0.011529708048328757
+  },
+  {
+   "name": "poly_fragment: pad grid",
+   "size": "10x10 pads",
+   "edges": 1600,
+   "rust": 0.0013547500129789114,
+   "numba": 0.062014166032895446
+  },
+  {
+   "name": "poly_fragment: pad grid",
+   "size": "16x16 pads",
+   "edges": 4096,
+   "rust": 0.005660834023728967,
+   "numba": 0.3577409159624949
+  },
+  {
+   "name": "poly_fragment: pad grid",
+   "size": "24x24 pads",
+   "edges": 9216,
+   "rust": 0.02374483400490135,
+   "numba": 1.7255995420273393
+  },
+  {
+   "name": "dekeyhole",
+   "size": "5 holes",
+   "edges": 99,
+   "rust": 1.5167053788900375e-05,
+   "numba": 0.00019495899323374033
+  },
+  {
+   "name": "dekeyhole",
+   "size": "20 holes",
+   "edges": 384,
+   "rust": 5.450006574392319e-05,
+   "numba": 0.0010277919936925173
+  },
+  {
+   "name": "dekeyhole",
+   "size": "60 holes",
+   "edges": 1144,
+   "rust": 0.00018991692923009396,
+   "numba": 0.005077750072814524
+  },
+  {
+   "name": "simplify_polyline (RDP)",
+   "size": "1000 pts",
+   "edges": 1000,
+   "rust": 3.783300053328276e-05,
+   "numba": 0.00017808296252042055
+  },
+  {
+   "name": "simplify_polyline (RDP)",
+   "size": "10000 pts",
+   "edges": 10000,
+   "rust": 0.0003303750418126583,
+   "numba": 0.00044062500819563866
+  },
+  {
+   "name": "simplify_polyline (RDP)",
+   "size": "100000 pts",
+   "edges": 100000,
+   "rust": 0.0033663749927654862,
+   "numba": 0.003085708012804389
+  },
+  {
+   "name": "is_simple_ring",
+   "size": "1000 pts",
+   "edges": 1000,
+   "rust": 4.8291985876858234e-05,
+   "numba": 0.0009242499945685267
+  },
+  {
+   "name": "is_simple_ring",
+   "size": "5000 pts",
+   "edges": 5000,
+   "rust": 0.00014804210513830185,
+   "numba": 0.02004750003106892
+  },
+  {
+   "name": "is_simple_ring",
+   "size": "20000 pts",
+   "edges": 20000,
+   "rust": 0.0005275409203022718,
+   "numba": 0.3053376660682261
+  },
+  {
+   "name": "via_wall_polygons",
+   "size": "190 vias",
+   "edges": 190,
+   "rust": 0.0024068329948931932,
+   "numba": 0.02274404198396951
+  },
+  {
+   "name": "via_wall_polygons",
+   "size": "764 vias",
+   "edges": 764,
+   "rust": 0.010552500025369227,
+   "numba": 0.09234591701533645
+  },
+  {
+   "name": "via_wall_polygons",
+   "size": "1910 vias",
+   "edges": 1910,
+   "rust": 0.04950391699094325,
+   "numba": 0.43723383301403373
+  }
+ ],
+ "micro": [
+  {
+   "name": "Polygon.is_inside (4-gon)",
+   "rust": 3.7497375160455704e-07,
+   "numba": 1.166015863418579e-06
+  },
+  {
+   "name": "Polygon.is_inside (with hole)",
+   "rust": 1.0409858077764511e-06,
+   "numba": 4.958012141287327e-06
+  },
+  {
+   "name": "Polygon.point_inside (with hole)",
+   "rust": 1.0830117389559746e-06,
+   "numba": 2.1499930880963802e-05
+  },
+  {
+   "name": "is_simple_ring (4 pts)",
+   "rust": 3.7497375160455704e-07,
+   "numba": 8.916016668081284e-06
+  },
+  {
+   "name": "add_polygons (2 squares)",
+   "rust": 6.9160014390945435e-06,
+   "numba": 0.00030512502416968346
+  },
+  {
+   "name": "subtract_polygons (2 squares)",
+   "rust": 6.749993190169334e-06,
+   "numba": 0.0002864580601453781
+  },
+  {
+   "name": "Polygon(..., holes=[...]) ctor",
+   "rust": 1.133396290242672e-05,
+   "numba": 2.7125002816319466e-05
+  }
+ ]
+}

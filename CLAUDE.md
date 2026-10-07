@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`emcad` is a pure-Python 2D polygon/CAD geometry kernel plus a native-Python ODB++ PCB-format parser. The package lives entirely under `src/emcad/`. It has two largely independent subsystems that meet in `src/emcad/emerge.py`:
+`emcad` is a 2D polygon/CAD geometry kernel (Rust core, Python API) plus a native-Python ODB++ PCB-format parser. The package lives entirely under `src/emcad/`. It has two largely independent subsystems that meet in `src/emcad/emerge.py`:
 
 1. **`emcad.kernel` / `emcad.poly`** — a general-purpose 2D polygon boolean/geometry kernel (union, intersect, subtract, fragment, simplify, hole handling).
 2. **`emcad.odbpp`** — a from-scratch ODB++ PCB design-format reader (matrix/layers/features/symbols) that resolves into the same `Polygon`-shaped geometry.
@@ -13,34 +13,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-- Install in editable mode: `uv sync` (project uses `uv.lock`) or `pip install -e .`
-- Run the interactive/manual test script: `python main.py` (see caveat below)
-- No test suite, linter, or formatter is configured yet — `tests/` is empty and `pyproject.toml` has no pytest/ruff/mypy config. Don't assume `pytest` or `ruff` exist as project commands until such config is added.
-
-**`main.py` import quirk**: it imports via `from src.emcad import ...` (path-relative to the repo root) rather than `from emcad import ...` (the installed package name declared in `pyproject.toml`). It must be run from the repo root as a script, not as an installed-package example. New example/demo code should generally prefer `import emcad as cad` (matches how `emerge.py` and everything under `src/` itself import the package) unless matching `main.py`'s existing style.
-
-Root-level `odb_parse.py`, "`odb_parse copy.py`", `odb_parse_post.py`, and `mathexp.py` are standalone scratch/experiment scripts (ODB++ → EM-simulation pipeline runs, and a sympy scratchpad for the edge-intersection math) — not part of the installable package and not imported by anything under `src/`.
+- Install / build: `uv sync --group dev`. The build backend is **maturin**: this compiles the Rust kernel in `rust/` into the `emcad._rs` extension module (needs a Rust toolchain). `[tool.uv] cache-keys` makes `uv sync`/`uv run` rebuild automatically whenever `rust/src/**/*.rs` or `rust/Cargo.toml` change.
+- Tests: `uv run pytest`. `tests/test_09_golden.py` pins every kernel op to golden fingerprints (`tests/golden/kernel_fingerprints.json`) recorded from the original numba implementation, which the Rust port reproduced bit-for-bit before numba was removed. Regenerate only after an *intended* behavior change: `uv run python tests/test_09_golden.py --regenerate`.
+- Benchmark: `uv run python benchmarks/bench.py [--quick]` -- startup, the test suite, scaled PCB-like workloads (`tests/workloads.py`), boundary-crossing cost, per-call overhead. `benchmarks/RESULTS.md` is the historical Rust-vs-numba write-up (raw data `results_vs_numba.json`).
+- Release: see "Releasing" below. No linter/formatter is configured.
 
 ## Architecture
 
-### Geometry kernel (`src/emcad/kernel/`)
+### Geometry kernel: Rust (`rust/src/`), Python API (`src/emcad/kernel/api.py`)
 
-`kernel/api.py` is the **only** public interface — it's a thin, fully-typed pass-through with no logic of its own. Every real implementation lives in an underscore-prefixed module, one topic per file:
+`kernel/api.py` is the **only** public kernel interface -- thin, fully-typed wrappers over `emcad._rs`, and the place each operation's contract is documented. The other modules in `src/emcad/kernel/` are dependency-free helpers: `_constants.py` (shared tolerances `DEFAULT_MERGE_TOL`/`DEFAULT_T_TOL`/`DEFAULT_AREA_TOL`), `_errors.py` (`ArrangementError`, raised from Rust), `_profiling.py`.
 
-| Module | Responsibility |
+| Rust module | Responsibility |
 |---|---|
-| `_ch.py` | convex hull |
-| `_primitives.py` + `_intersect_kernels.py` + `_inside.py` | edge-intersection / point-in-polygon primitives (numba-jitted); never import `Polygon` |
-| `_simplify.py` | Ramer-Douglas-Peucker polyline simplification, polygon sanitization (numba-jitted) |
-| `_fragment.py` + `fragment_tools.py` + `fragment_kernels.py` | `poly_fragment`: splits N (possibly overlapping/self-intersecting) polygons into a mutually-disjoint planar arrangement via a half-edge structure; this is the core primitive everything else composes |
-| `_boolean_ops.py` | `add_polygons`/`intersect_polygons`/`subtract_polygons`, built on top of `poly_fragment` + a sign/containment filter |
-| `_join.py` | `join_polygons`: fuses already-disjoint, edge-touching polygons back together (e.g. after a boolean-select step) — explicitly *not* a general union; raises on genuine crossings or fully-enclosed non-touching input |
-| `_keyhole.py` | converts keyhole-encoded rings (self-touching bridge/slit hole encoding, common in ODB++/Gerber) into proper `Polygon.holes` |
-| `_constants.py` | shared tolerances (`DEFAULT_MERGE_TOL`, `DEFAULT_T_TOL`, `DEFAULT_AREA_TOL`) — single source of truth, no deps |
+| `exact.rs` | grid-snapped exact integer predicates + the x-sorted sweep split finder (every crossing / T-junction / collinear overlap) |
+| `halfedge.rs` | half-edge rotation system, face tracing, containment queries, union-find |
+| `arrangement.rs` | the arrangement engine: split, chain, dedupe, trace faces, winding-parity membership propagation, label + assemble; `is_simple_ring` |
+| `boolean.rs` | bbox clustering + `add`/`intersect`/`subtract`/`join` as membership label functions over one arrangement (join additionally rejects any face claimed by two operands) |
+| `fragment.rs` | `poly_fragment` (float-tolerance arrangement, containment-forest nesting) |
+| `keyhole.rs` | keyhole-encoded rings (ODB++/Gerber bridge/slit holes) -> real holes |
+| `regularize.rs` | map-making style outline regularization (`Polygon.regularize`): snap edges onto a `dangle` direction grid, drop small protrusions (via pads on copper edges), rebuild corners |
+| `primitives.rs` | edge intersections, convex hull, RDP / sanitize / dezigzag |
+| `via.rs` | grid-bucketed via proximity graph + RNG pruning for `viaconnect.py` |
+| `geom.rs` | `PolyTree` (Rust mirror of `Polygon`), `point_inside`, even-odd `is_inside` |
+| `lib.rs` | PyO3 bindings |
 
-**Import-order constraint you must preserve**: `_join.py` constructs `Polygon` at its own module top level, so `api.py` imports it *lazily* (inside `join_polygons()`, not at module top) to avoid a circular import (`poly.py` → `kernel/api.py` → `_join.py` → `poly.py`). `_boolean_ops.py` does the same for the same reason. Every other kernel module avoids importing `Polygon` at runtime entirely (only under `TYPE_CHECKING`), which is what lets `api.py` import them eagerly. Read `kernel/api.py`'s module docstring before changing any kernel module's import structure.
+Boundary design (see `benchmarks/RESULTS.md` for measurements): one Python->Rust crossing per *operation*. Rust reads `Polygon.xs`/`.ys`/`.holes` directly and builds result `Polygon`s itself via `Polygon.__new__` + attribute assignment (the same object `_construct_verified` produces -- its validation is replicated in `geom.rs::PolyTree::verified`, reading `GlobalSettings.EPS` per call). Don't add per-ring or per-primitive calls into Rust from Python loops. Rust raises `emcad.poly.GeometryException` / `ValueError` / `emcad.kernel._errors.ArrangementError` by importing them at call time.
 
-Performance-critical inner loops (proximity/intersection counting, convex hull, RDP simplification) are `numba`-`@njit`-compiled; keep those functions free of Python-object types (dataclasses, `Polygon`, etc.) — they take/return plain `np.ndarray`.
+Determinism matters: outputs (vertex numbering, face order, output order) are deliberately reproducible -- parallel stages re-sort into a fixed order -- and pinned by the golden test.
+
+### Releasing (wheels + PyPI)
+
+`.github/workflows/wheels.yml` builds abi3 wheels (one per platform, covering every CPython >= 3.10) for Linux (manylinux x86_64/aarch64, musllinux x86_64), macOS (x86_64, arm64) and Windows (x64), plus the sdist, and runs the test suite against each wheel. It runs on every push/PR. Publishing to PyPI happens ONLY from a manual `workflow_dispatch` run with `publish: true` (or a published GitHub release), via PyPI Trusted Publishing (no API token), gated by the `pypi` GitHub environment. Bump `version` in `pyproject.toml` (and `rust/Cargo.toml`) before releasing -- PyPI never accepts the same version twice.
 
 ### `Polygon` (`src/emcad/poly.py`)
 

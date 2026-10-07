@@ -3,7 +3,8 @@ from .glob import GlobalSettings
 from dataclasses import dataclass
 from typing import Iterable, Generator
 import numpy as np
-from .kernel.api import edge_self_intersections, edge_cross_intersections, is_inside, dekeyhole_polygon, simplify_polyline, dezigzag_polyline, is_simple_ring
+from .kernel.api import edge_self_intersections, edge_cross_intersections, is_inside, dekeyhole_polygon, simplify_polyline, dezigzag_polyline, is_simple_ring, regularize_polyline
+from . import _rs
 
 class GeometryException(Exception):
     pass
@@ -145,31 +146,7 @@ class Polygon:
         everything is unambiguously outside, and the first crossing
         flips that to "inside" no matter what.
         """
-        loops = self._all_loops()
-        all_x = np.concatenate([xs for xs, _ in loops])
-        all_y = np.concatenate([ys for _, ys in loops])
-
-        y_top = all_y.max()
-        lower = all_y[all_y < y_top]
-        if lower.size == 0:
-            raise ValueError("Polygon is degenerate (zero height) -- no interior point exists")
-        y_second = lower.max()
-        y_test = 0.5 * (y_top + y_second)  # strictly between y_top and y_second, so no
-                                            # vertex (on any ring) sits exactly on this line
-
-        crossings = []
-        for xs, ys in loops:
-            x0, y0 = xs, ys
-            x1, y1 = np.roll(xs, -1), np.roll(ys, -1)
-            crosses = ((y0 <= y_test) & (y1 > y_test)) | ((y1 <= y_test) & (y0 > y_test))
-            xi = x0[crosses] + (y_test - y0[crosses]) / (y1[crosses] - y0[crosses]) * (x1[crosses] - x0[crosses])
-            crossings.append(xi)
-
-        xi_all = np.concatenate(crossings)
-        if xi_all.shape[0] < 2:
-            raise ValueError("Could not find an interior point (degenerate or near-degenerate polygon)")
-        xi_all.sort()
-        return 0.5 * (xi_all[0] + xi_all[1]), y_test
+        return _rs.polygon_point_inside(self)
 
     def remove_keyholes(self) -> None:
             new_poly = dekeyhole_polygon(self)
@@ -235,6 +212,34 @@ class Polygon:
         """
         self._apply_ring_transform(
             lambda xs, ys: dezigzag_polyline(xs, ys, max_kink_length, max_angle_deg, min_neighbor_factor)
+        )
+
+    def regularize(self, tol: float, dangle_deg: float = 5.0, angle_tol_deg: float = 0.05,
+                   min_anchor_len: float | None = None, offset_tol: float = 5e-6,
+                   vw_area: float | None = None) -> None:
+        """Map-making style outline regularization, in place -- and,
+        recursively, on every hole at every nesting depth. Snaps the
+        outline back onto its dominant straight lines (directions on a
+        `dangle_deg` grid), drops protrusions smaller than `tol` (e.g.
+        via pads poking out of a copper edge) and rebuilds corners
+        hidden under them, without the edge skew RDP (`.simplify()`)
+        produces on that kind of outline. Real arcs are kept and lightly
+        simplified. See `kernel.api.regularize_polyline` for the exact
+        algorithm and every parameter.
+
+        Best-effort with the same fail-safe as `.simplify()`/
+        `.dezigzag()`: any ring whose regularized shape would
+        self-intersect, or break hole nesting, keeps its original shape.
+
+        Args:
+            tol: largest detour (same units as xs/ys) that may be
+                flattened -- bigger than the bumps to remove, smaller
+                than the smallest real feature to keep.
+            dangle_deg: snap-angle step for straight edges.
+        """
+        self._apply_ring_transform(
+            lambda xs, ys: regularize_polyline(xs, ys, tol, dangle_deg, angle_tol_deg, min_anchor_len,
+                                               offset_tol, vw_area)
         )
 
     def _apply_ring_transform(self, ring_fn) -> None:
@@ -419,19 +424,4 @@ class Polygon:
         `include_boundary` decides the result -- same convention as a
         simple polygon.
         """
-        if not self.has_holes:
-            return is_inside(self.axs, self.ays, x, y, include_boundary)
-
-        inside_parity = False
-        on_any_boundary = False
-
-        for xs, ys in self._all_loops():
-            ring_inclusive = is_inside(xs, ys, x, y, True)
-            ring_strict = is_inside(xs, ys, x, y, False)
-            if ring_inclusive != ring_strict:
-                on_any_boundary = True
-            inside_parity ^= ring_strict
-
-        if on_any_boundary:
-            return include_boundary
-        return inside_parity
+        return _rs.polygon_is_inside(self, x, y, include_boundary)

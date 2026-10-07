@@ -1,11 +1,11 @@
 [build-system]
-requires = ["setuptools>=77.0"]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
 
 [project]
 name = "emcad"
-version = "0.1.0"
-description = "A pure-Python 2D polygon/CAD geometry kernel and a from-scratch ODB++ PCB format parser, accelerated with Numba."
+version = "0.2.0"
+description = "A 2D polygon/CAD geometry kernel (Rust core) and a from-scratch ODB++ PCB format parser."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -13,7 +13,7 @@ requires-python = ">=3.10"
 authors = [
     { name = "Robert Fennis" },
 ]
-keywords = ["odb++", "pcb", "eda", "geometry", "polygon", "cad", "numba"]
+keywords = ["odb++", "pcb", "eda", "geometry", "polygon", "cad", "boolean", "rust"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -27,14 +27,17 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Rust",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
 ]
 dependencies = [
     "loguru>=0.7.0",
     "matplotlib>=3.8.0",
     "msgpack>=1.0.0",
     "numpy>=2.2, <2.5",
-    "numba>=0.60.0",
 ]
 
 [project.urls]
@@ -45,8 +48,16 @@ dev = [
     "pytest>=8.0.0",
 ]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.maturin]
+# Pure-Python package from src/, plus the Rust kernel (rust/) compiled
+# in as the `emcad._rs` extension module.
+python-source = "src"
+module-name = "emcad._rs"
+manifest-path = "rust/Cargo.toml"
+features = ["extension-module"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+[tool.uv]
+# rebuild the Rust extension on `uv sync`/`uv run` whenever its sources change
+cache-keys = [{ file = "pyproject.toml" }, { file = "rust/Cargo.toml" }, { file = "rust/src/**/*.rs" }]
